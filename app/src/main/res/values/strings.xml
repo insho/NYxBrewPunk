@@ -1,0 +1,67 @@
+<resources>
+    <string name="app_name">NYxBrewPunk</string>
+    <string name="apikey_popular">486f85da5e9141148bc584033b050364 </string>
+    <string name="apikey_topv2">ad7d768fbee74dc98f6368fe79b80874 </string>
+
+    <string name="mainmenuButton_Popular">Popular Stories </string>
+    <string name="mainmenuButton_Top">Top Stories </string>
+
+
+    <string-array name="mainListOptions">
+        <item>Popular NYTimes Articles</item>
+    </string-array>
+
+    <string-array name="subListOptions_Popular">
+        <item>Most Emailed</item>
+        <item>Most Shared</item>
+        <item>Most Viewed</item>
+    </string-array>
+
+    <string-array name="popularMenuOptions_Time">
+        <item>1</item>
+        <item>7</item>
+        <item>30</item>
+    </string-array>
+
+    <string-array name="popularMenuOptions_Section">
+        <item>Arts</item>
+        <item>Automobiles</item>
+        <item>Blogs</item>
+        <item>Books</item>
+        <item>Business Day</item>
+        <item>Education</item>
+        <item>Fashion &amp; Style</item>
+        <item>Food</item>
+        <item>Health</item>
+        <item>Job Market</item>
+        <item>Magazine</item>
+        <item>membercenter</item>
+        <item>Movies</item>
+        <item>Multimedia</item>
+        <!--<item>N.Y.%20%2F%20Region</item>-->
+        <item>NYT Now</item>
+        <item>Obituaries</item>
+        <item>Open</item>
+        <item>Opinion</item>
+        <item>Public Editor</item>
+        <item>Real Estate</item>
+        <item>Science</item>
+        <item>Sports</item>
+        <item>Style</item>
+        <item>Sunday Review</item>
+        <item>T Magazine</item>
+        <item>Technology</item>
+        <item>The Upshot</item>
+        <item>Theater</item>
+        <item>Times Insider</item>
+        <item>Today’s Paper</item>
+        <item>Travel</item>
+        <item>U.S.</item>
+        <item>World</item>
+        <item>Your Money</item>
+        <item>all-sections</item>
+    </string-array>
+
+
+
+</resources>
