@@ -1,5 +1,4 @@
-
-package com.inshodesign.nytimesreader;
+package com.inshodesign.nytimesreader.Fragments;
 
         import android.content.Context;
         import android.os.Bundle;
@@ -10,26 +9,28 @@ package com.inshodesign.nytimesreader;
         import android.widget.AdapterView;
         import android.widget.ArrayAdapter;
 
+        import com.inshodesign.nytimesreader.API_Clients.NYTimesClient;
+        import com.inshodesign.nytimesreader.API_Interfaces.FragmentInteractionListener;
+        import com.inshodesign.nytimesreader.R;
 
+/**
+ * Fragment with a list of sub-criteria for an NYTimes article category ("most shared", "most emailed" etc). This fragment
+ * appears after the article category is chosen in {@link MainFragment}. Selecting a sub-criteria makes
+ * the API call ({@link NYTimesClient}) and takes user to
+ * {@link ArticleListFragment}
+ */
 public class SubFragment extends ListFragment implements AdapterView.OnItemClickListener {
 
 
-    OnSubOptionSelectedListener mCallback;
+    private FragmentInteractionListener mCallback;
 
-
-    // Container Activity must implement this interface
-    public interface OnSubOptionSelectedListener {
-        void getArticles(String requesttype, String apikey);
-    }
 
 
     @Override
     public View onCreateView(LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_main, container, false);
-        return view;
+        return inflater.inflate(R.layout.fragment_main, container, false);
     }
-
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
@@ -42,10 +43,10 @@ public class SubFragment extends ListFragment implements AdapterView.OnItemClick
 
     }
 
+    /*Makes callback to MainActivity getArticles method, pulling articles from NYTimes api and
+      sending user to ArticleListFragment */
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position,long id) {
-//        mCallback.onSubOptionSelected(position,"all-sections","1");
-
         switch (position) {
             case 0:
                 mCallback.getArticles("mostemailed", getString(R.string.apikey_popular));
@@ -62,26 +63,15 @@ public class SubFragment extends ListFragment implements AdapterView.OnItemClick
 
     }
 
-
-
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
         try {
-            mCallback = (OnSubOptionSelectedListener) context;
+            mCallback = (FragmentInteractionListener) context;
         } catch (ClassCastException e) {
             throw new ClassCastException(context.toString()
                     + " must implement OnHeadlineSelectedListener");
         }
-
-//        Activity a;
-//
-//        if (context instanceof Activity){
-//            a=(Activity) context;
-//        }
-
     }
-//    public interface OnNewsItemSelectedListener{
-//        public void onNewsItemPicked(int position);
-//    }
+
 }

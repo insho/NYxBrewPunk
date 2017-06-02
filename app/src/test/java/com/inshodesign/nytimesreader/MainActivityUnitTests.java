@@ -1,17 +1,16 @@
 package com.inshodesign.nytimesreader;
 
-import android.app.Application;
-import android.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
-import android.test.ApplicationTestCase;
-import android.widget.ArrayAdapter;
+
+import com.inshodesign.nytimesreader.Fragments.ArticleListFragment;
+import com.inshodesign.nytimesreader.Fragments.MainFragment;
+import com.inshodesign.nytimesreader.Fragments.SubFragment;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;

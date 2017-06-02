@@ -1,33 +1,21 @@
-package com.inshodesign.nytimesreader;
+package com.inshodesign.nytimesreader.Models;
 
 import android.os.Parcel;
 import android.os.Parcelable;
 
 /**
- * Created by JClassic on 2/21/2017.
+ * Object representing a New York Times article
  */
-
 public class NYTimesArticle implements Parcelable {
 
-    public final String url;
-    public final String count_type;
-    public final String column;
-    public final String section;
-    public final String byline;
-    public final String title;
-    public final String published_date;
-    public final String source;
-
-//    public NYTimesArticle(String url, String count_type, String column, String section, String byline,String title,String published_date,String source) {
-//        this.url = url;
-//        this.count_type = count_type;
-//        this.column = column;
-//        this.section = section;
-//        this.byline = byline;
-//        this.title = title;
-//        this.published_date = published_date;
-//        this.source = source;
-//    }
+    private final String url;
+    private final String count_type;
+    private final String column;
+    private final String section;
+    private final String byline;
+    private final String title;
+    private final String published_date;
+    private final String source;
 
     public String getTitle()
     {
@@ -39,7 +27,9 @@ public class NYTimesArticle implements Parcelable {
         return url;
     }
 
-
+    public String getByLine() {
+        return byline;
+    }
 
     // Parcelling part
     public NYTimesArticle(Parcel in){

@@ -1,5 +1,5 @@
 
-package com.inshodesign.nytimesreader;
+package com.inshodesign.nytimesreader.Fragments;
 
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -13,6 +13,17 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
+import com.inshodesign.nytimesreader.API_Clients.NYTimesClient;
+import com.inshodesign.nytimesreader.Adapters.ArticleAdapter;
+import com.inshodesign.nytimesreader.Adapters.RxBus;
+import com.inshodesign.nytimesreader.BeerInfoPopup;
+import com.inshodesign.nytimesreader.API_Clients.BrewDogClient;
+import com.inshodesign.nytimesreader.BuildConfig;
+import com.inshodesign.nytimesreader.ExternalDB;
+import com.inshodesign.nytimesreader.Models.BrewDogBeer;
+import com.inshodesign.nytimesreader.Models.NYTimesArticle;
+import com.inshodesign.nytimesreader.R;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -25,21 +36,19 @@ import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
 import rx.schedulers.Schedulers;
 
-
+/**
+ * Displays a set of New York Times articles recieved from the API call (in {@link NYTimesClient}). Clicking
+ * on the article will bring up the {@link BeerInfoPopup}, with a recommendation for a BrewDog beer based on the article title.
+ */
 public class ArticleListFragment extends Fragment  {
 
-    List<NYTimesArticle> loadedArticles;  // Downloaded in mainactivity and passed here
-    
-    private BrewPunkBeer loadedBeer;
+    private ArrayList<NYTimesArticle> loadedArticles;  // Downloaded in mainactivity and passed here
+    private BrewDogBeer loadedBeer;
     private ArrayList<String> loadedBeerNames;
     private RecyclerView mRecyclerView;
-    private ArticleAdapter mAdapter;
-    private RecyclerView.LayoutManager mLayoutManager;
-    private Subscription subscription;
+    private Subscription beerInfoSubscription;
     private RxBus _rxBus = new RxBus();
     private final static String TAG = "TEST";
-    private boolean debug = false;
-
     private BeerInfoPopup beerInfoPopup  = null;
 
 
@@ -59,6 +68,11 @@ public class ArticleListFragment extends Fragment  {
         super.onActivityCreated(savedInstanceState);
 
         //Use a subscriber to pull database data
+        if(savedInstanceState!=null) {
+            loadedArticles = savedInstanceState.getParcelableArrayList("loadedArticles");
+            loadedBeerNames = savedInstanceState.getParcelable("loadedBeerNames");
+        }
+
         if(loadedBeerNames == null) {
             loadedBeerNames = new ArrayList<>();
             ExternalDB helper = ExternalDB.getInstance(getActivity());
@@ -74,7 +88,7 @@ public class ArticleListFragment extends Fragment  {
             } else {
                 //If there is an error, and nothing returned, the getBeerData routine will end up choosing "random"
                 //So it's all good
-                if(debug){Log.d("TEST","c is null!");};
+                if(BuildConfig.DEBUG){Log.d("TEST","c is null!");};
             }
             c.close();
 
@@ -83,11 +97,10 @@ public class ArticleListFragment extends Fragment  {
 
         }
 
-        mLayoutManager = new LinearLayoutManager(getContext());
-        mRecyclerView.setLayoutManager(mLayoutManager);
+        mRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        if(debug){Log.d("TEST","Articles: " + loadedArticles);}
-           mAdapter = new ArticleAdapter(loadedArticles, _rxBus);
+        if(BuildConfig.DEBUG){Log.d("TEST","Articles: " + loadedArticles);}
+          ArticleAdapter mAdapter = new ArticleAdapter(loadedArticles, _rxBus);
 
         _rxBus.toObserverable()
                 .subscribe(new Action1<Object>() {
@@ -95,15 +108,10 @@ public class ArticleListFragment extends Fragment  {
                     public void call(Object event) {
 
                         if(event instanceof Integer) {
-                            if(debug){Log.d(TAG,"BUS INT: " + event);}
+                            //Create beer recommendation based on nytimes article and pass it to brewdog api call to get beer info
                             NYTimesArticle article = loadedArticles.get(((Integer) event));
-                            if(debug){Log.d(TAG,"ARTICLE TITLE SENT: " + article.title);}
-                            String beerRecTMP = beerRecommendation(loadedBeerNames,article.title);
-                            if(debug){Log.d(TAG,"Recommended Beer: " + beerRecTMP);}
+                            String beerRecTMP = beerRecommendation(loadedBeerNames,article.getTitle());
                             getBeerData(beerRecTMP,article );
-
-
-
                         }
                     }
 
@@ -113,15 +121,21 @@ public class ArticleListFragment extends Fragment  {
 
     }
 
+    /**
+     * Makes call to BrewDog API and returns information for
+     * a given beer name (that was reocmmended based on an NY times article)
+     * @param beer recommended beer
+     * @param article chosen article
+     */
     private void getBeerData(String beer, NYTimesArticle article) {
 
-            subscription = BrewPunkClient.getInstance()
+            beerInfoSubscription = BrewDogClient.getInstance()
                     .getBeerData(beer)
                     .subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe(new Observer<List<BrewPunkBeer>>() {
+                    .subscribe(new Observer<List<BrewDogBeer>>() {
                         @Override public void onCompleted() {
-                            if(debug){Log.d(TAG, "In onCompleted()");};
+                            if(BuildConfig.DEBUG){Log.d(TAG, "In onCompleted()");};
 
                             if(beerInfoPopup == null || !beerInfoPopup.isShowing()) {
                                 String namematch = "Name Match";
@@ -137,35 +151,38 @@ public class ArticleListFragment extends Fragment  {
 
                         @Override public void onError(Throwable e) {
                             e.printStackTrace();
-                            if(debug){Log.d(TAG, "In onError()");}
+                            if(BuildConfig.DEBUG){Log.d(TAG, "In onError()");}
                             Toast.makeText(getActivity(), "Unable to connect to BrewPunk API", Toast.LENGTH_SHORT).show();
                         }
 
-                        @Override public void onNext(List<BrewPunkBeer> beer) {
-                            if(debug){Log.d(TAG, "In onNext()");}
-
+                        @Override public void onNext(List<BrewDogBeer> beer) {
+                            if(BuildConfig.DEBUG){Log.d(TAG, "In onNext()");}
                             //Get the first beer
                             loadedBeer = beer.get(0);
-
-
-
                         }
                     });
-
     }
 
 
-
+    /**
+     * Recommends a beer name for a given NYTimes article. It does so by parsing the title and trying to match
+     * a word in the title with a word in the db of brewdog beers ({@link ExternalDB}). If a match is found,
+     * it returns that beer. If no matches are found, it returns a random beer
+     * @param beerNames Array of beer name from the external db
+     * @param articleTitle Title of chosen NYTimes article
+     * @return recommended beer based on title name
+     */
     private String beerRecommendation(ArrayList<String> beerNames, String articleTitle) {
         //Get the title of the article, and parse the words in it into a list
         List<String> wordsFromSentence = new ArrayList<String>(Arrays.asList(articleTitle.split(" ")));
         Set<String> uniqueWords = new HashSet<String>(wordsFromSentence);
-        if(debug) {
+        if(BuildConfig.DEBUG) {
             Log.d("TEST", "uniqueWords: " + uniqueWords);
             Log.d("TEST", "loadedBeerNames: " + beerNames);
         }
         String beerRecomendation = "";
 
+        //Cycles through words in article and attempts to match them with beer names
         for (String word : uniqueWords) {
             if (beerNames != null && beerNames.size() > 0) {
                 for (String beer : beerNames) {
@@ -174,18 +191,18 @@ public class ArticleListFragment extends Fragment  {
                         //Make this one the beer recommendation
                         if (beerRecomendation.equals("")) {
                             beerRecomendation = beer;
-                            if(debug){Log.d("TEST", "beerRecommendation = " + beer);}
+                            if(BuildConfig.DEBUG){Log.d("TEST", "beerRecommendation = " + beer);}
                         } else if (word.length() > beerRecomendation.length()) {
                             beerRecomendation = beer;
-                            if(debug){Log.d("TEST", "beerRecommendation replaced = " + beer);}
+                            if(BuildConfig.DEBUG){Log.d("TEST", "beerRecommendation replaced = " + beer);}
 
                         }
                     }
                 }
 
             }
-
-            //IF we didn't find anything call it random
+            /*If nothing is found call it random, which will be passed
+              to the BrewDogService, returning a random beer */
             if (beerRecomendation.length() == 0) {
                 beerRecomendation = "random";
             }
@@ -195,6 +212,26 @@ public class ArticleListFragment extends Fragment  {
     }
 
 
+    @Override
+    public void onPause() {
+        if(beerInfoSubscription !=null) {
+            beerInfoSubscription.unsubscribe();
+        }
+        super.onPause();
+    }
 
+    @Override
+    public void onDestroy() {
+        if(beerInfoSubscription !=null) {
+            beerInfoSubscription.unsubscribe();
+        }
+        super.onDestroy();
+    }
 
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putStringArrayList("loadedBeerNames",loadedBeerNames);
+        outState.putParcelableArrayList("loadedArticles",loadedArticles);
+    }
 }

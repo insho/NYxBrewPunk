@@ -1,9 +1,5 @@
 package com.inshodesign.nytimesreader;
 
-/**
- * Created by JClassic on 2/25/2017.
- */
-
 
         import android.animation.Animator;
         import android.animation.ObjectAnimator;
@@ -25,7 +21,6 @@ package com.inshodesign.nytimesreader;
         import android.util.TypedValue;
         import android.view.Display;
         import android.view.Gravity;
-        import android.view.KeyEvent;
         import android.view.LayoutInflater;
         import android.view.MotionEvent;
         import android.view.View;
@@ -35,27 +30,32 @@ package com.inshodesign.nytimesreader;
         import android.widget.ProgressBar;
         import android.widget.TextView;
 
+        import com.inshodesign.nytimesreader.Models.BrewDogBeer;
+        import com.inshodesign.nytimesreader.Models.NYTimesArticle;
         import com.squareup.picasso.Callback;
         import com.squareup.picasso.Picasso;
         import java.util.ArrayList;
 
 
 /**
- * Created by Joe on 11/21/2015.
+ * Popup with information for a BrewDog beer. Appears when user clicks on a beer in
+ * {@link com.inshodesign.nytimesreader.Fragments.ArticleListFragment}. Article title
+ * is matched to a beer, and info is pulled from BrewDog api  in
+ * {@link com.inshodesign.nytimesreader.Fragments.ArticleListFragment#getBeerData(String, NYTimesArticle)}
+ *
+ * User can drag down to dismiss the popup.
  */
-
 public class BeerInfoPopup implements View.OnTouchListener {
 
-    String TAG = "WordDetailPopupWindow";
-    static final boolean debug = true;
+    private final String TAG = "WordDetailPopupWindow";
 
-    Activity activity;
+    private Activity activity;
     private View anchorView;
     private final NYTimesArticle mArticle;
-    private final BrewPunkBeer mBeerData;
-    String mNameMatch = "Name Match";
+    private final BrewDogBeer mBeerData;
+    private String mNameMatch = "Name Match";
 
-    public BeerInfoPopup(Activity activity, View anchorView, @NonNull NYTimesArticle article, @Nullable BrewPunkBeer beerData, @NonNull String namematch) {
+    public BeerInfoPopup(Activity activity, View anchorView, @NonNull NYTimesArticle article, @Nullable BrewDogBeer beerData, @NonNull String namematch) {
         this.activity = activity;
         this.anchorView = anchorView;
         this.mArticle = article;
@@ -64,7 +64,6 @@ public class BeerInfoPopup implements View.OnTouchListener {
     }
 
     private View baseLayout;
-    private View popupView;
     private PopupWindow popupWindow;
     private int previousFingerPosition = 0;
     private int baseLayoutPosition = 0;
@@ -72,11 +71,10 @@ public class BeerInfoPopup implements View.OnTouchListener {
     private boolean isClosing = false;
     private boolean isScrollingUp = false;
     private boolean isScrollingDown = false;
-    private ArrayList<String> colors;
 
 
     public View CreateView() {
-        popupView = LayoutInflater.from(activity).inflate(R.layout.popup_layout2, null);
+        View popupView = LayoutInflater.from(activity).inflate(R.layout.popup_layout2, null);
         baseLayout = popupView.findViewById(R.id.popuptab_layout);
         baseLayout.setOnTouchListener(this);
 
@@ -101,27 +99,37 @@ public class BeerInfoPopup implements View.OnTouchListener {
                 statusbarspacer.setHeight(activity.getResources().getDimensionPixelSize(resourceId));
             }
 
-        TextView recommendedBeer = (TextView) popupView.findViewById(R.id.recommendedBeer);
+        //Fill beer info with text spans that are half-unformatted, half-bold
+        ((TextView) popupView.findViewById(R.id.recommendedBeer)).setText(boldSpan("Recommended beer: ",mBeerData.getName()));
+        ((TextView) popupView.findViewById(R.id.recommendationcriteria)).setText(boldSpan("Recommended on: ",mNameMatch));
+        ((TextView) popupView.findViewById(R.id.abv)).setText(boldSpan("abv: ",mBeerData.getABV()));
+        ((TextView) popupView.findViewById(R.id.ibu)).setText(boldSpan("ibu: ",mBeerData.getIBU()));
 
-        final SpannableStringBuilder sb = new SpannableStringBuilder("Recommended beer: " + mBeerData.getName());
-        final StyleSpan bss = new StyleSpan(android.graphics.Typeface.BOLD); // Span to make text bold
-         sb.setSpan(bss, 18, (18 + mBeerData.getName().length()), Spannable.SPAN_INCLUSIVE_INCLUSIVE);
-        recommendedBeer.setText(sb);
 
-        TextView recommendationCriteria = (TextView) popupView.findViewById(R.id.recommendationcriteria);
-        final SpannableStringBuilder sbCriteria = new SpannableStringBuilder("Recommended on: " + mNameMatch);
-        sbCriteria.setSpan(bss, 16, (16 + mNameMatch.length()), Spannable.SPAN_INCLUSIVE_INCLUSIVE);
-        recommendationCriteria.setText(sbCriteria);
+//        TextView recommendedBeer = (TextView) popupView.findViewById(R.id.recommendedBeer);
+//        recommendedBeer.setText(boldSpan("Recommended beer: ",mBeerData.getName()));
+//
+//
+//        final SpannableStringBuilder sb = new SpannableStringBuilder("Recommended beer: " + mBeerData.getName());
+//        final StyleSpan bss = new StyleSpan(android.graphics.Typeface.BOLD); // Span to make text bold
+//         sb.setSpan(bss, 18, (18 + mBeerData.getName().length()), Spannable.SPAN_INCLUSIVE_INCLUSIVE);
+//        recommendedBeer.setText(sb);
+//
 
-        TextView abv =  (TextView) popupView.findViewById(R.id.abv);
-        final SpannableStringBuilder sbABV = new SpannableStringBuilder("abv: " + mBeerData.getABV());
-        sbCriteria.setSpan(bss, 5, (5 + mBeerData.getABV().length()), Spannable.SPAN_INCLUSIVE_INCLUSIVE);
-        abv.setText(sbABV);
-
-        TextView ibu =  (TextView) popupView.findViewById(R.id.ibu);
-        final SpannableStringBuilder sbIBU = new SpannableStringBuilder("ibu: " + mBeerData.getIBU());
-        sbCriteria.setSpan(bss, 5, (5 + mBeerData.getIBU().length()), Spannable.SPAN_INCLUSIVE_INCLUSIVE);
-        ibu.setText(sbIBU);
+//        TextView recommendationCriteria = (TextView) popupView.findViewById(R.id.recommendationcriteria);
+//        final SpannableStringBuilder sbCriteria = new SpannableStringBuilder("Recommended on: " + mNameMatch);
+//        sbCriteria.setSpan(bss, 16, (16 + mNameMatch.length()), Spannable.SPAN_INCLUSIVE_INCLUSIVE);
+//        recommendationCriteria.setText(sbCriteria);
+//
+//        TextView abv =  (TextView) popupView.findViewById(R.id.abv);
+//        final SpannableStringBuilder sbABV = new SpannableStringBuilder("abv: " + mBeerData.getABV());
+//        sbCriteria.setSpan(bss, 5, (5 + mBeerData.getABV().length()), Spannable.SPAN_INCLUSIVE_INCLUSIVE);
+//        abv.setText(sbABV);
+//
+//        TextView ibu =  (TextView) popupView.findViewById(R.id.ibu);
+//        final SpannableStringBuilder sbIBU = new SpannableStringBuilder("ibu: " + mBeerData.getIBU());
+//        sbCriteria.setSpan(bss, 5, (5 + mBeerData.getIBU().length()), Spannable.SPAN_INCLUSIVE_INCLUSIVE);
+//        ibu.setText(sbIBU);
 
 
         TextView beerInfo = (TextView) popupView.findViewById(R.id.beerInfo);
@@ -144,8 +152,7 @@ public class BeerInfoPopup implements View.OnTouchListener {
             }
 
             @Override public void onError() {
-                // your code
-                //TODO other code
+                Log.e(TAG,"ERROR LOADING sweet beer image");
                 progressView.setVisibility(View.GONE);
                 loadingText.setVisibility(TextView.GONE);
 
@@ -155,7 +162,6 @@ public class BeerInfoPopup implements View.OnTouchListener {
 
         Picasso.with(activity)
                 .load(mBeerData.getImage_url())
-//                .transform(new RoundedTransformation(15, 0))
                 .resize(250, 300)
                 .centerInside()
                 .into(beerImage, loadedCallback);
@@ -171,19 +177,34 @@ public class BeerInfoPopup implements View.OnTouchListener {
         int location[] = new int[2];
 
         anchorView.getLocationOnScreen(location);
-        popupWindow.showAtLocation(anchorView, Gravity.NO_GRAVITY, 0, 180);
+        popupWindow.showAtLocation(baseLayout, Gravity.NO_GRAVITY, 0, 180);
 
         return popupView;
     }
 
-    public boolean isShowing() {
+    /**
+     * Takes two strings and combines them so that one section is unformatted and another bold
+     * @param plainText text to keep unformatted
+     * @param boldText text to make bold
+     * @return a span with partly bold (ex: Recommended beer: THE BEER)
+     */
+    private SpannableStringBuilder boldSpan(String plainText, String boldText) {
+        final StyleSpan bss = new StyleSpan(android.graphics.Typeface.BOLD);
+        final SpannableStringBuilder sb = new SpannableStringBuilder(plainText + boldText);
+        sb.setSpan(bss, plainText.length(), (plainText.length() + boldText.length()), Spannable.SPAN_INCLUSIVE_INCLUSIVE);
 
+        return sb;
+    }
+
+    public boolean isShowing() {
         return popupWindow.isShowing();
     }
 
-
+    /**
+     * Tracks the user holding and dragging the Popup window. If they drag far enough down
+     * the screen the popup will dismiss
+     */
     public boolean onTouch(View view, MotionEvent event) {
-
 
         // Get finger position on screen
         final int Y = (int) event.getRawY();
@@ -233,15 +254,6 @@ public class BeerInfoPopup implements View.OnTouchListener {
                         if (baseLayout.getHeight() < defaultViewHeight) {
                             baseLayout.getLayoutParams().height = baseLayout.getHeight() - (Y - previousFingerPosition);
                             baseLayout.requestLayout();
-                        } else {
-                            // Has user scroll enough to "auto close" popup ?
-                            if ((baseLayoutPosition - currentYPosition) > defaultViewHeight / 6) {
-                                closeUpAndDismissDialog(currentYPosition);
-
-                                return true;
-                            }
-
-                            //
                         }
                         baseLayout.setY(baseLayout.getY() + (Y - previousFingerPosition));
 
@@ -276,6 +288,11 @@ public class BeerInfoPopup implements View.OnTouchListener {
         return true; //gestureDetector.onTouchEvent(event);
     }
 
+    /**
+     * Sends dialog layout off the bottom of the screen in an animation and
+     * dismisses the dialog
+     * @param currentPosition position on the screen
+     */
     private void closeDownAndDismissDialog(int currentPosition) {
         isClosing = true;
 
@@ -307,7 +324,6 @@ public class BeerInfoPopup implements View.OnTouchListener {
             public void onAnimationEnd(Animator animator) {
 
                 popupWindow.dismiss();
-                if(debug){Log.d(TAG,") Blue: popupWindow.dismiss A");}
 
                 //reset the position variables
                 previousFingerPosition = 0;
@@ -320,55 +336,6 @@ public class BeerInfoPopup implements View.OnTouchListener {
         });
         positionAnimator.start();
     }
-
-
-
-    private void closeUpAndDismissDialog(int currentPosition) {
-
-
-        isClosing = true;
-        ObjectAnimator positionAnimator = ObjectAnimator.ofFloat(baseLayout, "y", currentPosition, -baseLayout.getHeight());
-        positionAnimator.setDuration(300);
-        positionAnimator.addListener(new Animator.AnimatorListener() {
-
-            @Override
-            public void onAnimationStart(Animator animation) {
-
-            }
-
-
-            @Override
-            public void onAnimationCancel(Animator animation) {
-
-            }
-
-            @Override
-            public void onAnimationRepeat(Animator animation) {
-
-            }
-
-            //            . . .
-            @Override
-            public void onAnimationEnd(Animator animator) {
-
-                popupWindow.dismiss();
-
-                //reset the position variables
-                previousFingerPosition = 0;
-                baseLayoutPosition = 0;
-                isClosing = false;
-                isScrollingUp = false;
-                isScrollingDown = false;
-
-
-            }
-
-        });
-
-        positionAnimator.start();
-
-    }
-
 
 
 

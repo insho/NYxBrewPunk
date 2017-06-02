@@ -1,4 +1,4 @@
-package com.inshodesign.nytimesreader;
+package com.inshodesign.nytimesreader.Fragments;
 
 import android.content.Context;
 import android.os.Bundle;
@@ -9,22 +9,19 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 
+import com.inshodesign.nytimesreader.API_Interfaces.FragmentInteractionListener;
+import com.inshodesign.nytimesreader.R;
+
 /**
- * Created by JClassic on 2/21/2017.
+ * Fragment with a list of the main NYTimes article categories (of which there is currently only one: "Popular NYTimes Articles").
+ * Selecting an options takes the user to the {@link SubFragment}, with sub-criteria ("most shared", "most emailed" etc) to select.
  */
-
 public class MainFragment extends ListFragment implements AdapterView.OnItemClickListener {
-    OnMainOptionSelectedListener mCallback;
-
-    public interface OnMainOptionSelectedListener {
-        void onMainOptionSelected(int position);
-    }
-
+    FragmentInteractionListener mCallback;
 
 @Override
 public View onCreateView(LayoutInflater inflater,
                          ViewGroup container, Bundle savedInstanceState) {
-
     return inflater.inflate(R.layout.fragment_main, container, false);
 }
 
@@ -44,7 +41,7 @@ public View onCreateView(LayoutInflater inflater,
     public void onAttach(Context context) {
         super.onAttach(context);
         try {
-            mCallback = (OnMainOptionSelectedListener) context;
+            mCallback = (FragmentInteractionListener) context;
         } catch (ClassCastException e) {
             throw new ClassCastException(context.toString()
                     + " must implement OnHeadlineSelectedListener");

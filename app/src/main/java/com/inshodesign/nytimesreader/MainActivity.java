@@ -6,28 +6,30 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.MenuItem;
 import android.widget.Toast;
+
+import com.inshodesign.nytimesreader.API_Clients.NYTimesClient;
+import com.inshodesign.nytimesreader.API_Interfaces.FragmentInteractionListener;
+import com.inshodesign.nytimesreader.Fragments.ArticleListFragment;
+import com.inshodesign.nytimesreader.Fragments.MainFragment;
+import com.inshodesign.nytimesreader.Fragments.SubFragment;
+import com.inshodesign.nytimesreader.Models.NYTimesArticle;
+import com.inshodesign.nytimesreader.Models.NYTimesArticleWrapper;
+
 import java.util.ArrayList;
 import rx.Observer;
+import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
-public class MainActivity extends AppCompatActivity implements MainFragment.OnMainOptionSelectedListener
-        , SubFragment.OnSubOptionSelectedListener {
+/**
+ * Main Activity and traffic control between fragments (default fragment is {@link MainFragment})
+ */
+public class MainActivity extends AppCompatActivity implements FragmentInteractionListener {
 
-    MainFragment mainFragment;
-    SubFragment subFragment;
-    ArticleListFragment articleListFragment;
-    private ArrayList<NYTimesArticle> loadedArticles;
     private static final String TAG = "TEST";
     private static final boolean debug = false;
     private Toolbar toolbar;
-
-
-    /**
-     *  You can replace these with spinners later if you want
-     */
-    private String section = "all-sections";
-    private String time = "1";
+    private Subscription nyTimesSubscription;
 
 
     @Override
@@ -39,10 +41,9 @@ public class MainActivity extends AppCompatActivity implements MainFragment.OnMa
         db.initializeDBInternalCopy();
 
         if (savedInstanceState == null) {
-            mainFragment = new MainFragment();
             showToolBarBackButton(false, "NYxBrewPunk");
             getSupportFragmentManager().beginTransaction()
-                    .add(R.id.container, mainFragment)
+                    .add(R.id.container, new MainFragment())
                     .commit();
         } else {
             showToolBarBackButton(savedInstanceState.getBoolean("showbackbutton"),savedInstanceState.getString("toolbartitle"));
@@ -50,61 +51,60 @@ public class MainActivity extends AppCompatActivity implements MainFragment.OnMa
 
     }
 
-
-        public void onMainOptionSelected(int position) {
-
-            if (position == 0) {
-                if (subFragment == null) {
-                    subFragment = new SubFragment();
-                }
-
+    /**
+     * Replaces {@link MainFragment} with {@link SubFragment} when user
+     * picks a main article category. Recieves callback
+     * @param position position in main category list, passed to subfragment
+     */
+    public void onMainOptionSelected(int position) {
                 getSupportFragmentManager().beginTransaction()
                         .addToBackStack("subFragment")
-                        .replace(R.id.container, subFragment)
+                        .replace(R.id.container, new SubFragment())
                         .commit();
-
-
+                getSupportFragmentManager().executePendingTransactions();
                 showToolBarBackButton(true, "Article Categories");
-
-            } else {
-                Toast.makeText(this, "Choice not linked up yet...", Toast.LENGTH_SHORT).show();
-            }
-
 
         }
 
     /**
-     * You can add a time and section chooser element to the main activity if you want
-     * Articles can be picked from any section in the paper
-     * Time constraint is 1, 7 or 30 days
-     * */
-
+     * Makes API call to NYTimes and returns list of articles in an {@link NYTimesArticleWrapper} object for the
+     * given request criteria (most of which are currently hard-coded)
+     * @param requesttype Main criteria (chosen in {@link MainFragment})
+     * @param apikey sub-criteria (from {@link SubFragment}
+     */
     public void getArticles(String requesttype, String apikey) {
 
-        NYTimesClient.getInstance()
+
+    /*
+     * Note: If this were real these would be spinners that the user could select.
+     * It is possible to add a time and section chooser element as well. Articles can
+     * be picked from any section in the paper. Time constraint is 1, 7 or 30 days
+     */
+        final String section = "all-sections";
+        final String time = "1";
+
+        nyTimesSubscription = NYTimesClient.getInstance()
                 .getArticles(requesttype, section,time,apikey)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<NYTimesArticleWrapper>() {
+
+                    private ArrayList<NYTimesArticle> loadedArticles;
+
                     @Override public void onCompleted() {
                         if(debug){Log.d(TAG, "In onCompleted()");}
 
                         if(loadedArticles != null) {
 
-                            if (articleListFragment == null) {
-                                articleListFragment = new ArticleListFragment();
-
+                                ArticleListFragment articleListFragment = new ArticleListFragment();
                                 Bundle args = new Bundle();
                                 args.putParcelableArrayList("loadedArticles",loadedArticles);
                                 articleListFragment.setArguments(args);
-                            }
 
                             getSupportFragmentManager().beginTransaction()
                                     .addToBackStack("articlelistfrag")
                                     .replace(R.id.container, articleListFragment)
                                     .commit();
-
-
                             showToolBarBackButton(true,getArticleRequestType(requesttype));
                         }
                     }
@@ -118,12 +118,12 @@ public class MainActivity extends AppCompatActivity implements MainFragment.OnMa
                     @Override public void onNext(NYTimesArticleWrapper nytimesArticles) {
                         if(debug) {
                             Log.d(TAG, "In onNext()");
-                            Log.d(TAG, "nytimesArticles: " + nytimesArticles.num_results);
+                            Log.d(TAG, "nytimesArticles: " + nytimesArticles.getResultCount());
                         }
 
                         /***TMP**/
                         if(loadedArticles == null) {
-                            loadedArticles = nytimesArticles.results;
+                            loadedArticles = nytimesArticles.getArticles();
                         }
 
 
@@ -134,9 +134,8 @@ public class MainActivity extends AppCompatActivity implements MainFragment.OnMa
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-
         onBackPressed();
-return true;
+        return true;
     }
 
 
@@ -151,6 +150,11 @@ return true;
         }
     }
 
+    /**
+     * Shows or hides the actionbar back arrow
+     * @param showBack bool true to show the button
+     * @param title title to show next to button
+     */
     public void showToolBarBackButton(Boolean showBack, CharSequence title) {
         if (toolbar == null) {
             toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -163,6 +167,14 @@ return true;
 
     }
 
+    /**
+     * Returns the correct app title for a given requesttype (chosen in MainFragment, displayed in action bar)
+     * while {@link SubFragment} is showing
+     * @param rawRequestType request string representing type of article category being displayed in subfragment
+     * @return clean title to display in action bar
+     *
+     * @see #showToolBarBackButton(Boolean, CharSequence)
+     */
     private String getArticleRequestType(String rawRequestType) {
         String articleRequestType = "";
         switch (rawRequestType) {
@@ -178,9 +190,7 @@ return true;
             default:
                 break;
         }
-
         return articleRequestType;
-
     }
 
 
@@ -189,13 +199,28 @@ return true;
         if(getSupportActionBar() != null && getSupportActionBar().getTitle() != null) {
             savedInstanceState.putString("toolbartitle", getSupportActionBar().getTitle().toString());
         }
-        if((subFragment != null && subFragment.isVisible()) ||(articleListFragment != null && articleListFragment.isVisible())){
+
+        if(getSupportFragmentManager().getBackStackEntryCount()>0){
             savedInstanceState.putBoolean("showbackbutton", true);
         } else  {
             savedInstanceState.putBoolean("showbackbutton", false);
         }
-
     }
 
+    @Override
+    protected void onPause() {
+        if(nyTimesSubscription!=null) {
+            nyTimesSubscription.unsubscribe();
+        }
+        super.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if(nyTimesSubscription!=null) {
+            nyTimesSubscription.unsubscribe();
+        }
+        super.onDestroy();
+    }
 }
 

@@ -1,10 +1,13 @@
-package com.inshodesign.nytimesreader;
+package com.inshodesign.nytimesreader.API_Clients;
 
 
 import android.support.annotation.NonNull;
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.inshodesign.nytimesreader.API_Interfaces.BrewDogService;
+import com.inshodesign.nytimesreader.Models.BrewDogBeer;
+
 import java.util.List;
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
@@ -14,16 +17,16 @@ import retrofit2.converter.gson.GsonConverterFactory;
 import rx.Observable;
 
 /**
- * Created by JClassic on 2/21/2017.
+ * Client for retrofit call to BrewDog API
+ * @see BrewDogService
  */
-
-public class BrewPunkClient {
+public class BrewDogClient {
 
     private static final String BrewPunk_Base_URL = "https://api.punkapi.com/v2/";
-    private static BrewPunkClient instance;
+    private static BrewDogClient instance;
     private BrewDogService brewdogService;
 
-    private BrewPunkClient() {
+    private BrewDogClient() {
         final Gson gson =
                 new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES).create();
 
@@ -40,14 +43,21 @@ public class BrewPunkClient {
 
         brewdogService = retrofit.create(BrewDogService.class);
     }
-    public static BrewPunkClient getInstance() {
+    public static BrewDogClient getInstance() {
         if (instance == null) {
-            instance = new BrewPunkClient();
+            instance = new BrewDogClient();
         }
         return instance;
     }
 
-    public Observable<List<BrewPunkBeer>> getBeerData(@NonNull String beer) {
+    //Returns a BrewDogBeer object with data for a particular BrewDog beer (chosen at random or by beer name)
+
+    /**
+     * Observable of a BrewDogBeer objects, containing data for a particular BrewDog beer (chosen at random or by beer name)
+     * @param beer beer to choose ("random" will return random beer. A name may have more than one match)
+     * @return brewdog beer observable
+     */
+    public Observable<List<BrewDogBeer>> getBeerData(@NonNull String beer) {
         if(beer.equals("random")) {
             return brewdogService.getRandomBeer();
         } else {
